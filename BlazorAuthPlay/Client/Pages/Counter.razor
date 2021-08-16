@@ -1,16 +1,53 @@
 ﻿@page "/counter"
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.WebAssembly.Authentication
+@*@attribute [Authorize(Roles = "CanViewCounterPage")]*@
+@inject AuthenticationStateProvider AuthenticationStateProvider
 
 <h1>Counter</h1>
 
 <p role="status">Current count: @currentCount</p>
 
-<button class="btn btn-primary" @onclick="IncrementCount">Click me</button>
+<AuthorizeView Roles="CanClickCounterButton">
+    <Authorized>
+        <button class="btn btn-primary" @onclick="IncrementCount">Click me</button>
+    </Authorized>
+    <NotAuthorized>
+        <div>back off!</div>
+        <div>u're not permitted</div>
+    </NotAuthorized>
+</AuthorizeView>
+
+<div style="color:red">
+    <br />
+    @Message
+</div>
 
 @code {
     private int currentCount = 0;
+    private string Message = "";
+    private ClaimsPrincipal User;
 
     private void IncrementCount()
     {
-        currentCount++;
+        Message = "";
+        if (User.Identity.IsAuthenticated && User.IsInRole("CanIncrementCounter"))
+            currentCount++;
+        else
+            Message = "Not allowed to increment!";
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthenticationStateProvider
+                                .GetAuthenticationStateAsync();
+
+        User = authState.User;
+        Console.WriteLine("Claims here: ");
+        foreach (var claim in User.Claims)
+        {
+            Console.WriteLine($"{claim.Subject} : {claim.Value}");
+        }
+        Console.WriteLine("That's all!");
     }
 }
