@@ -1,7 +1,44 @@
 ﻿@page "/"
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.WebAssembly.Authentication
+@inject AuthenticationStateProvider AuthenticationStateProvider
 
 <h1>Hello, world!</h1>
 
-Welcome to your new app.
+@if (User != null)
+{
+    <select @onchange="ItemSelected">
+        @foreach (var item in User.Claims)
+        {
+            <option value="@item.Type">@item.Type @item.Value</option>
+        }
+    </select>
+}
+
+@if(SelectedClaim != null)
+{
+    <br />
+    <div>@SelectedClaim.Value</div>
+}
 
 <SurveyPrompt Title="How is Blazor working for you?" />
+
+@code {
+    private ClaimsPrincipal User;
+    Claim SelectedClaim;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthenticationStateProvider
+                                .GetAuthenticationStateAsync();
+
+        User = authState.User;
+    }
+
+    void ItemSelected(ChangeEventArgs args)
+    {
+        SelectedClaim = User.Claims.FirstOrDefault(o => o.Type == args.Value.ToString());
+        Console.WriteLine($"{SelectedClaim.Type} : {SelectedClaim.Value}");
+        StateHasChanged();
+    }
+}
